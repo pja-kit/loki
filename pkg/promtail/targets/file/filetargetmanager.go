@@ -3,6 +3,8 @@ package file
 import (
 	"context"
 	"fmt"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/charmap"
 	"os"
 	"strings"
 	"sync"
@@ -29,6 +31,7 @@ import (
 const (
 	pathLabel              = "__path__"
 	hostLabel              = "__host__"
+	encodingLabel          = "__encoding__"
 	kubernetesPodNodeField = "spec.nodeName"
 )
 
@@ -243,6 +246,12 @@ func (s *targetSyncer) sync(groups []*targetgroup.Group) {
 				continue
 			}
 
+			encodingName,ok := labels[encodingLabel]
+			var encoding encoding.Encoding = nil
+			if ok {
+				level.Info(s.log).Log("msg","Using encoding for target"+encodingName)
+				encoding = findEncoding(string(encodingName))
+			}
 			for k := range labels {
 				if strings.HasPrefix(string(k), "__") {
 					delete(labels, k)
@@ -259,7 +268,7 @@ func (s *targetSyncer) sync(groups []*targetgroup.Group) {
 			}
 
 			level.Info(s.log).Log("msg", "Adding target", "key", key)
-			t, err := s.newTarget(string(path), labels, discoveredLabels)
+			t, err := s.newTarget(string(path), labels, discoveredLabels,encoding)
 			if err != nil {
 				dropped = append(dropped, target.NewDroppedTarget(fmt.Sprintf("Failed to create target: %s", err.Error()), discoveredLabels))
 				level.Error(s.log).Log("msg", "Failed to create target", "key", key, "error", err)
@@ -283,8 +292,16 @@ func (s *targetSyncer) sync(groups []*targetgroup.Group) {
 	s.droppedTargets = dropped
 }
 
-func (s *targetSyncer) newTarget(path string, labels model.LabelSet, discoveredLabels model.LabelSet) (*FileTarget, error) {
-	return NewFileTarget(s.log, s.entryHandler, s.positions, path, labels, discoveredLabels, s.targetConfig)
+func findEncoding(encodingName string) encoding.Encoding {
+	if(encodingName == "ISO-8859-1") {
+		return charmap.ISO8859_1
+	}
+	//todo add more
+	return nil
+}
+
+func (s *targetSyncer) newTarget(path string, labels model.LabelSet, discoveredLabels model.LabelSet, encoding encoding.Encoding) (*FileTarget, error) {
+	return NewFileTarget(s.log, s.entryHandler, s.positions, path, labels, discoveredLabels, s.targetConfig,encoding)
 }
 
 func (s *targetSyncer) DroppedTargets() []target.Target {

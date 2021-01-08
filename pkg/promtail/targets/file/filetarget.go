@@ -2,6 +2,7 @@ package file
 
 import (
 	"flag"
+	"golang.org/x/text/encoding"
 	"os"
 	"path/filepath"
 	"time"
@@ -82,6 +83,7 @@ type FileTarget struct {
 	positions        positions.Positions
 	labels           model.LabelSet
 	discoveredLabels model.LabelSet
+	encoding encoding.Encoding
 
 	watcher *fsnotify.Watcher
 	watches map[string]struct{}
@@ -95,7 +97,7 @@ type FileTarget struct {
 }
 
 // NewFileTarget create a new FileTarget.
-func NewFileTarget(logger log.Logger, handler api.EntryHandler, positions positions.Positions, path string, labels model.LabelSet, discoveredLabels model.LabelSet, targetConfig *Config) (*FileTarget, error) {
+func NewFileTarget(logger log.Logger, handler api.EntryHandler, positions positions.Positions, path string, labels model.LabelSet, discoveredLabels model.LabelSet, targetConfig *Config, encoding encoding.Encoding) (*FileTarget, error) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -108,6 +110,7 @@ func NewFileTarget(logger log.Logger, handler api.EntryHandler, positions positi
 		path:             path,
 		labels:           labels,
 		discoveredLabels: discoveredLabels,
+		encoding:         encoding,
 		handler:          api.AddLabelsMiddleware(labels).Wrap(handler),
 		positions:        positions,
 		quit:             make(chan struct{}),
@@ -301,7 +304,7 @@ func (t *FileTarget) startTailing(ps []string) {
 			continue
 		}
 		level.Debug(t.logger).Log("msg", "tailing new file", "filename", p)
-		tailer, err := newTailer(t.logger, t.handler, t.positions, p)
+		tailer, err := newTailer(t.logger, t.handler, t.positions, p, t.encoding)
 		if err != nil {
 			level.Error(t.logger).Log("msg", "failed to start tailer", "error", err, "filename", p)
 			continue

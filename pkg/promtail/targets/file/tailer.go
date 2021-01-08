@@ -1,6 +1,7 @@
 package file
 
 import (
+	"golang.org/x/text/encoding"
 	"os"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ type tailer struct {
 	positions positions.Positions
 
 	path string
+	encoding encoding.Encoding
 	tail *tail.Tail
 
 	posAndSizeMtx sync.Mutex
@@ -34,7 +36,7 @@ type tailer struct {
 	done    chan struct{}
 }
 
-func newTailer(logger log.Logger, handler api.EntryHandler, positions positions.Positions, path string) (*tailer, error) {
+func newTailer(logger log.Logger, handler api.EntryHandler, positions positions.Positions, path string, encoding encoding.Encoding) (*tailer, error) {
 	// Simple check to make sure the file we are tailing doesn't
 	// have a position already saved which is past the end of the file.
 	fi, err := os.Stat(path)
@@ -70,6 +72,7 @@ func newTailer(logger log.Logger, handler api.EntryHandler, positions positions.
 		handler:   api.AddLabelsMiddleware(model.LabelSet{FilenameLabel: model.LabelValue(path)}).Wrap(handler),
 		positions: positions,
 		path:      path,
+		encoding:  encoding,
 		tail:      tail,
 		running:   atomic.NewBool(false),
 		posquit:   make(chan struct{}),
@@ -148,11 +151,20 @@ func (t *tailer) readLines() {
 
 		readLines.WithLabelValues(t.path).Inc()
 		logLengthHistogram.WithLabelValues(t.path).Observe(float64(len(line.Text)))
+		text := line.Text
+		if  t.encoding != nil {
+		  decodedText,err := t.encoding.NewDecoder().String(line.Text)
+		  if err != nil {
+			  level.Error(t.logger).Log("msg", "Unable to decode bytes", "path", t.path)
+		  } else {
+		  	text = decodedText
+		  }
+		}
 		entries <- api.Entry{
 			Labels: model.LabelSet{},
 			Entry: logproto.Entry{
 				Timestamp: line.Time,
-				Line:      line.Text,
+				Line: text,
 			},
 		}
 

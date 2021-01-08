@@ -52,7 +52,7 @@ func TestLongPositionsSyncDelayStillSavesCorrectPosition(t *testing.T) {
 
 	target, err := NewFileTarget(logger, client, ps, logFile, nil, nil, &Config{
 		SyncPeriod: 10 * time.Second,
-	})
+	},nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestWatchEntireDirectory(t *testing.T) {
 
 	target, err := NewFileTarget(logger, client, ps, logFileDir+"*", nil, nil, &Config{
 		SyncPeriod: 10 * time.Second,
-	})
+	},nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +230,7 @@ func TestFileRolls(t *testing.T) {
 
 	target, err := NewFileTarget(logger, client, positions, dirName+"/*.log", nil, nil, &Config{
 		SyncPeriod: 10 * time.Second,
-	})
+	},nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +326,7 @@ func TestResumesWhereLeftOff(t *testing.T) {
 
 	target, err := NewFileTarget(logger, client, ps, dirName+"/*.log", nil, nil, &Config{
 		SyncPeriod: 10 * time.Second,
-	})
+	},nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func TestResumesWhereLeftOff(t *testing.T) {
 	// Create a new target, keep the same client so we can track what was sent through the handler.
 	target2, err := NewFileTarget(logger, client, ps2, dirName+"/*.log", nil, nil, &Config{
 		SyncPeriod: 10 * time.Second,
-	})
+	},nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +433,7 @@ func TestGlobWithMultipleFiles(t *testing.T) {
 
 	target, err := NewFileTarget(logger, client, ps, dirName+"/*.log", nil, nil, &Config{
 		SyncPeriod: 10 * time.Second,
-	})
+	},nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -529,7 +529,7 @@ func TestFileTargetSync(t *testing.T) {
 
 	target, err := NewFileTarget(logger, client, ps, logDir1+"/*.log", nil, nil, &Config{
 		SyncPeriod: 10 * time.Second,
-	})
+	},nil)
 	if err != nil {
 		t.Fatal(err)
 	}
